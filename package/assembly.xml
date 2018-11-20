@@ -1,0 +1,36 @@
+<assembly
+	xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.3 http://maven.apache.org/xsd/assembly-1.1.3.xsd">
+	<id>build</id>
+	<formats>
+		<format>dir</format>
+		<format>zip</format>
+	</formats>
+	<fileSets>
+		<fileSet>
+			<directory>${project.basedir}/package</directory>
+			<outputDirectory>/bin</outputDirectory>
+			<filtered>true</filtered>
+			<includes>
+				<include>*.sh</include>
+			</includes>
+			<lineEnding>unix</lineEnding>
+			<fileMode>0777</fileMode>
+		</fileSet>
+	</fileSets>
+	<files>
+		<file>
+			<source>${project.build.directory}/net.jzajic.graalvm.kadvisor.kadvisorlauncher</source>
+			<outputDirectory>/bin</outputDirectory>
+			<destName>kadvisor</destName>
+			<fileMode>0777</fileMode>
+		</file>
+		<file>
+			<source>${project.basedir}/agent/node_exporter</source>
+			<outputDirectory>/bin</outputDirectory>
+			<destName>node-exporter</destName>
+			<fileMode>0777</fileMode>
+		</file>
+	</files>
+</assembly>
