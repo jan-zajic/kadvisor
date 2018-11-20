@@ -1,0 +1,110 @@
+package net.jzajic.graalvm.kadvisor;
+
+import java.io.IOException;
+import java.nio.file.Paths;
+
+import net.jzajic.graalvm.client.DefaultDockerClient;
+import net.jzajic.graalvm.client.DockerClient;
+import picocli.CommandLine;
+import picocli.CommandLine.AbstractParseResultHandler;
+import picocli.CommandLine.DefaultExceptionHandler;
+import picocli.CommandLine.ExecutionException;
+import picocli.CommandLine.Model.CommandSpec;
+import picocli.CommandLine.Model.OptionSpec;
+import picocli.CommandLine.ParseResult;
+
+public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
+	
+	private static final CommandSpec spec = CommandSpec.create()
+			.name("kadvisor")
+			.version("kadvisor 0.1")
+			.mixinStandardHelpOptions(true)
+			.addOption(OptionSpec.builder("--docker")
+	        .paramLabel("docker")
+	        .type(String.class)
+	        .defaultValue("unix:///var/run/docker.sock")
+	        .description("Docker uri to connect to.").build())
+			.addOption(OptionSpec.builder("--runtime")
+	        .paramLabel("runtime")
+	        .type(String.class)
+	        .description("Docker runtime name used to launch watched containers.").build())
+			.addOption(OptionSpec.builder("--label")
+	        .paramLabel("label")
+	        .defaultValue("kadvisor")
+	        .type(String.class)
+	        .description("Label used to identify watched containers.").build())
+			.addOption(OptionSpec.builder("--network")
+	        .paramLabel("network")
+	        .type(String.class)
+	        .description("Network in which containers export metrics.").build())
+			.addOption(OptionSpec.builder("--port")
+	        .paramLabel("port")
+	        .type(Integer.class)
+	        .defaultValue("1234")
+	        .description("Port to export prometheus metrics.").build())
+			.addOption(OptionSpec.builder("--agent")
+	        .paramLabel("agent")
+	        .type(String.class)
+	        .description("Folder contains node exporter agent binary.").build())
+			;
+	
+	private static final CommandLine commandLine = new CommandLine(spec);
+	
+	private DockerClient dockerClient;
+	private WatchedContainerRegistry registry;
+	private ContainerAgentManager manager;
+	
+	private int port;
+	private String label;
+	private String runtime;
+	private String network;
+	private String dockerURI;
+	private String agent;
+	
+	public static void main(String[] args) throws IOException {
+		KadvisorLauncher instance = new KadvisorLauncher();
+		Integer parseResult = commandLine.parseWithHandlers(
+				instance.useOut(System.out),
+        new DefaultExceptionHandler<Integer>().andExit(567),
+        args);
+		if(parseResult != null && parseResult == 0) {
+			instance.start();
+		}
+	}
+	
+	private void start() throws IOException {				
+		dockerClient = new DefaultDockerClient(dockerURI);
+		registry = new WatchedContainerRegistry(dockerClient, label, runtime, network);
+		manager = new ContainerAgentManager(dockerClient, Paths.get(this.agent));
+		registry.addListener(manager);
+		final HTTPServer server = new HTTPServer(registry, port);
+		
+		Runtime.getRuntime().addShutdownHook(new Thread()
+    {
+        @Override
+        public void run()
+        {
+        		System.out.println("INTERRUPTED, EXITING");
+          	server.stop();
+          	registry.stop();
+        }
+    });
+	}
+	
+	@Override
+	protected Integer handle(ParseResult parseResult) throws ExecutionException {
+		this.port = parseResult.matchedOption("port").getValue();
+		this.dockerURI = parseResult.matchedOption("docker").getValue();
+		this.label = parseResult.matchedOption("label").getValue();
+		this.runtime = parseResult.matchedOption("runtime").getValue();
+		this.network = parseResult.matchedOption("network").getValue();
+		this.agent = parseResult.matchedOption("agent").getValue();
+		return 0;
+	}
+
+	@Override
+	protected AbstractParseResultHandler<Integer> self() {
+		return this;
+	}
+	
+}

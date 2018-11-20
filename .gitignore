@@ -1,0 +1,6 @@
+#ignore all hidden unix files (for example eclipse configuration)
+.*
+!.gitignore
+#ignore maven target directories
+target
+bin
