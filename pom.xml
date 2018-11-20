@@ -3,7 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<groupId>cz.corpus</groupId>
+	<groupId>net.jzajic</groupId>
 	<artifactId>kadvisor</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
@@ -54,7 +54,7 @@
 							<images>
 								<!-- A single's image configuration -->
 								<image>
-									<name>${docker.registry}/eex/kadvisor:latest</name>
+									<name>${docker.registry}/jzajic/kadvisor:latest</name>
 									<build>
 										<from>debian:latest</from>
 										<maintainer>jan.zajic@corpus.cz</maintainer>
