@@ -21,22 +21,23 @@ import net.jzajic.graalvm.kadvisor.WatchedContainerRegistry.ContainerListener;
 public class ContainerAgentManager implements ContainerListener {
 
 	private final DockerClient dockerClient;
-	private final Path agentFolderPath;
+	private final Path agentBinaryPath;
 	private final Map<String, ExecInfo> execMap = new ConcurrentHashMap<>();
 	protected final ExecutorService executorService;
 	
 	public ContainerAgentManager(DockerClient dockerClient, Path agentFolderPath) {
 		super();
 		this.dockerClient = dockerClient;
-		this.agentFolderPath = agentFolderPath;
+		this.agentBinaryPath = agentFolderPath;
 		this.executorService = Executors.newCachedThreadPool();
 	}
 	
 	@Override
 	public void added(String ipAddress, ContainerInfo info) {
 		try {
-			dockerClient.copyToContainer(agentFolderPath, info.id, "/opt/node-exporter");
-			ExecCreation execCreate = dockerClient.execCreate(info.id, new String[] {"/opt/node-exporter/node_exporter"}, ExecCreateParam.detach());
+			dockerClient.copyToContainer(agentBinaryPath, info.id, "/bin");
+			makeExecutable(info.id, "/bin/"+agentBinaryPath.getFileName().toString());
+			ExecCreation execCreate = dockerClient.execCreate(info.id, new String[] {"/bin/"+agentBinaryPath.getFileName().toString()}, ExecCreateParam.detach());
 			ExecInfo execInfo = new ExecInfo();
 			execInfo.execCreate = execCreate;
 			execInfo.info = info;
@@ -53,6 +54,12 @@ public class ContainerAgentManager implements ContainerListener {
 		}		
 	}
 	
+	private void makeExecutable(String id, String path) {
+		ExecCreation execCreate = dockerClient.execCreate(id, new String[] {"chmod", "755", path});
+		String chmodResult = dockerClient.execStart(execCreate.id).readFully();
+		System.out.println("Changed permission of "+path+" in cont "+id+": \n"+chmodResult);
+	}
+
 	@Override
 	public void removed(String ipAddress, ContainerInfo info) {
 		if(execMap.containsKey(info.id)) {

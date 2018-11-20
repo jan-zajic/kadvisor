@@ -1,14 +1,15 @@
 package net.jzajic.graalvm.kadvisor;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import net.jzajic.graalvm.client.DockerClient;
@@ -42,8 +43,7 @@ public class WatchedContainerRegistry {
 			inspectContainer(cont.id);
 		});
 		EventStream events = dockerClient.events(EventsParam.label(label), EventsParam.event("health_status"), EventsParam.event("die"));
-		new Thread("Docker event consuming Thread") {
-			
+		Thread eventThread = new Thread("Docker event consuming Thread") {
 			@Override
 			public void run() {
 				while(running) {
@@ -61,8 +61,9 @@ public class WatchedContainerRegistry {
 					});
 				}
 			}
-			
 		};
+		eventThread.setDaemon(true);
+		eventThread.start();
 	}
 	
 	private void inspectContainer(String containerId) {
@@ -73,10 +74,11 @@ public class WatchedContainerRegistry {
 			if(networkName != null) {
 				network = networkSettings.networks.get(networkName);
 			} else {
-				network = networkSettings.networks.get(0);
+				network = networkSettings.networks.values().iterator().next();
 			}
-			containerMap.put(network.ipAddress, containerInfo);
-			notifyAdd(network.ipAddress, containerInfo);
+			ContainerInfo prevValue = containerMap.put(network.ipAddress, containerInfo);
+			if(prevValue == null || !prevValue.state.running)
+				notifyAdd(network.ipAddress, containerInfo);
 		}
 	}
 
@@ -114,7 +116,15 @@ public class WatchedContainerRegistry {
 	}
 	
 	public void addListener(ContainerListener listener) {
-		this.listeners.add(listener);
+		synchronized (this.listeners) {
+			HashSet<Entry<String, ContainerInfo>> existingContainers = Sets.newHashSet(this.containerMap.entrySet());		
+			for (Entry<String, ContainerInfo> entry : existingContainers) {
+				ContainerInfo info = entry.getValue();
+				if(info.state.running)
+					listener.added(entry.getKey(), info);
+			}
+			this.listeners.add(listener);
+		}
 	}
 	
 	public static interface ContainerListener {

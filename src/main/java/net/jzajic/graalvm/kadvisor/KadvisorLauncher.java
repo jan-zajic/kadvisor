@@ -45,7 +45,7 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 			.addOption(OptionSpec.builder("--agent")
 	        .paramLabel("agent")
 	        .type(String.class)
-	        .description("Folder contains node exporter agent binary.").build())
+	        .description("Path to agent binary file (node-exporter).").build())
 			;
 	
 	private static final CommandLine commandLine = new CommandLine(spec);
@@ -93,12 +93,15 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 	
 	@Override
 	protected Integer handle(ParseResult parseResult) throws ExecutionException {
-		this.port = parseResult.matchedOption("port").getValue();
-		this.dockerURI = parseResult.matchedOption("docker").getValue();
-		this.label = parseResult.matchedOption("label").getValue();
-		this.runtime = parseResult.matchedOption("runtime").getValue();
-		this.network = parseResult.matchedOption("network").getValue();
-		this.agent = parseResult.matchedOption("agent").getValue();
+		this.port = parseResult.matchedOptionValue("port", 1234);
+		this.dockerURI = parseResult.matchedOptionValue("docker", "unix:///var/run/docker.sock");
+		this.label = parseResult.matchedOptionValue("label", "kadvisor");
+		this.runtime = parseResult.matchedOptionValue("runtime", null);
+		this.network = parseResult.matchedOptionValue("network", null);
+		this.agent = parseResult.matchedOptionValue("agent", null);
+		if(this.agent == null) {
+			throw new ExecutionException(commandLine, "Agent required");
+		}
 		return 0;
 	}
 
