@@ -6,9 +6,11 @@ import java.net.HttpURLConnection;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
@@ -33,9 +35,15 @@ public class HTTPMetricHandler implements HttpHandler {
     ByteArrayOutputStream response = new ByteArrayOutputStream();
     response.reset();
     //WRITE
+    HttpClientBuilder clientBuilder = HttpClients.custom();
     registry.endpoints().forEach(e -> {
-    	try(CloseableHttpClient httpclient = HttpClients.createDefault();) {
-    		HttpGet httpGet = new HttpGet("http://"+e.ipAddress+e.path+":"+e.port);
+    	try(CloseableHttpClient httpclient = HttpClients.createDefault()) {
+    		HttpGet httpGet = new HttpGet("http://"+e.ipAddress+":"+e.port+e.path);
+    		RequestConfig.Builder requestBuilder = RequestConfig.custom();
+    		requestBuilder.setSocketTimeout(5000);
+        requestBuilder.setConnectTimeout(5000);
+        requestBuilder.setConnectionRequestTimeout(60000);        
+    		httpGet.setConfig(requestBuilder.build());
     		CloseableHttpResponse singleResponse = httpclient.execute(httpGet);
     		response.write(EntityUtils.toByteArray(singleResponse.getEntity()));
     		response.write('\n');
