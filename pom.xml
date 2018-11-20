@@ -41,6 +41,15 @@
 						--verbose -H:-ReportUnsupportedElementsAtRuntime -H:ReflectionConfigurationResources=reflection.json,reflection-gen.json
 					</buildArgs>
 				</configuration>
+				<executions>
+					<execution>
+						<id>build-native</id>
+						<goals>
+							<goal>native-image</goal>						
+						</goals>
+						<phase>package</phase>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 		<pluginManagement>
