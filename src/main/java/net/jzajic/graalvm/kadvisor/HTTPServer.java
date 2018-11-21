@@ -22,8 +22,7 @@ public class HTTPServer {
    * Start a HTTP server serving Prometheus metrics from the given registry.
    */
   public HTTPServer(WatchedContainerRegistry registry, InetSocketAddress addr, boolean daemon) throws IOException {
-      server = HttpServer.create();
-      server.bind(addr, 3);
+      server = HttpServer.create(addr, -1);
       HttpHandler mHandler = new HTTPMetricHandler(registry);
       server.createContext("/", mHandler);
       server.createContext("/metrics", mHandler);
