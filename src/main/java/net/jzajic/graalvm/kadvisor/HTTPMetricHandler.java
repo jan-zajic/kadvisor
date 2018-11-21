@@ -2,30 +2,23 @@ package net.jzajic.graalvm.kadvisor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.HttpURLConnection;
-import java.util.Arrays;
+import java.net.Socket;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-
 import io.prometheus.client.Collector.MetricFamilySamples;
 import rawhttp.core.RawHttp;
 import rawhttp.core.RawHttpHeaders;
 import rawhttp.core.RawHttpRequest;
 import rawhttp.core.RawHttpResponse;
+import rawhttp.core.body.BodyReader;
 import rawhttp.core.body.BytesBody;
-import rawhttp.core.body.ChunkedBody;
 import rawhttp.core.body.StringBody;
 
 public class HTTPMetricHandler {
@@ -49,20 +42,19 @@ public class HTTPMetricHandler {
     //WRITE
     final Map<String,MetricFamilySamples> outputSamples = new HashMap<>();
     registry.endpoints().forEach(e -> {
-    	try(CloseableHttpClient httpclient = HttpClients.createDefault()) {
-    		String uri = "http://"+e.ipAddress+":"+e.port+e.path;
-    		if (query != null) uri += "?"+query;
-    		HttpGet httpGet = new HttpGet(uri);
-    		RequestConfig.Builder requestBuilder = RequestConfig.custom();
-    		requestBuilder.setSocketTimeout(5000);
-        requestBuilder.setConnectTimeout(5000);
-        requestBuilder.setConnectionRequestTimeout(60000);        
-    		httpGet.setConfig(requestBuilder.build());
-    		CloseableHttpResponse singleResponse = httpclient.execute(httpGet);
-    		try(InputStream singleStream = singleResponse.getEntity().getContent()) {
-    			parser.collect(singleStream, outputSamples, e.tags);
-    		}    		
-    		singleResponse.close();
+    	try(Socket socket = new Socket(e.ipAddress, e.port); OutputStream socketOs = socket.getOutputStream();) {
+    		String getURI = e.path;
+    		if (query != null) getURI += "?"+query;
+    		RawHttpRequest request = http.parseRequest(
+    		    "GET "+getURI+" HTTP/1.1\r\n" +
+    		    "User-Agent: kadvisor/0.1\r\n" +
+    		    "Accept-Encoding: identity\r\n" +
+    		    "Host: "+e.ipAddress+"\r\n");
+    		request.writeTo(socketOs);
+    		socketOs.flush();
+    		RawHttpResponse<?> rawResponse = http.parseResponse(socket.getInputStream()).eagerly();
+    		Optional<? extends BodyReader> body = rawResponse.getBody();
+  			parser.collect(body.get().asRawStream(), outputSamples, e.tags);
     	} catch(IOException ex) {
     		ex.printStackTrace();
     	}
