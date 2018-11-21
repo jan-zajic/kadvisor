@@ -84,7 +84,6 @@
 				<executions>
 					<execution>
 						<id>docker-build</id>
-						<phase>verify</phase>
 						<goals>
 							<!-- "build" should be used to create the images with the artifact -->
 							<goal>build</goal>
