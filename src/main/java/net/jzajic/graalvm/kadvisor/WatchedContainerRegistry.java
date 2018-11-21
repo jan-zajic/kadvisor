@@ -1,6 +1,7 @@
 package net.jzajic.graalvm.kadvisor;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
 import net.jzajic.graalvm.client.DockerClient;
@@ -138,12 +140,26 @@ public class WatchedContainerRegistry {
 		return this.containerMap.entrySet().stream().map(entry -> {
 			Endpoint e = new Endpoint();
 			e.ipAddress = entry.getKey();
+			ContainerInfo value = entry.getValue();
 			e.port = 9100;
 			e.path = "/metrics";
+			e.tags = buildTags(value);
 			return e;
 		}).collect(Collectors.toList());
 	}
 	
+	private Map<String, String> buildTags(ContainerInfo value) {
+		Map<String, String> tags = new HashMap<>();
+		ImmutableMap<String, String> labels = value.config.labels;
+		if(labels != null && !labels.isEmpty()) {
+			if(labels.containsKey("com.docker.compose.service")) {
+				tags.put("compose.service", labels.get("com.docker.compose.service"));
+				tags.put("compose.project", labels.get("com.docker.compose.project"));				
+			}
+		}
+		return tags;
+	}
+
 	public static class Endpoint {
 		String ipAddress;
 		int port;
