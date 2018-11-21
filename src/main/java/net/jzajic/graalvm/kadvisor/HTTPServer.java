@@ -1,6 +1,7 @@
 package net.jzajic.graalvm.kadvisor;
 
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -35,7 +36,7 @@ public class HTTPServer {
    * Start a HTTP server serving the default Prometheus registry.
    */
   public HTTPServer(WatchedContainerRegistry registry, int port) throws IOException {
-      this(registry, new InetSocketAddress(port), false);
+      this(registry, new InetSocketAddress(Inet4Address.getByAddress(new byte[] {0, 0, 0, 0}), port), false);      
   }
 
 	/**

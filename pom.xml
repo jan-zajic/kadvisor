@@ -46,61 +46,54 @@
 					<execution>
 						<goals>
 							<goal>native-image</goal>
-						</goals>					
+						</goals>
 					</execution>
 				</executions>
 			</plugin>
 			<plugin>
-						<groupId>io.fabric8</groupId>
-						<artifactId>docker-maven-plugin</artifactId>
-						<version>0.17.1</version>
-						<configuration>
-							<docker.machine.ignoreEmpty>true</docker.machine.ignoreEmpty>
-							<apiVersion>1.22</apiVersion>
-							<registry>${docker.registry}</registry>
-							<images>
-								<!-- A single's image configuration -->
-								<image>
-									<name>${docker.registry}/jzajic/kadvisor:latest</name>
-									<build>
-										<from>debian:latest</from>
-										<maintainer>jan.zajic@corpus.cz</maintainer>
-										<ports>
-											<port>1234</port>
-										</ports>
-										<assembly>
-											<mode>tar</mode>
-											<basedir>/</basedir>
-											<descriptor>${basedir}/package/assembly.xml</descriptor>
-										</assembly>
-										<entryPoint>
-											<shell>/bin/start.sh</shell>
-										</entryPoint>
-										<optimise>true</optimise>
-									</build>
-								</image>
-							</images>
-						</configuration>
-						<executions>
-							<execution>
-								<id>docker-build</id>
-								<phase>verify</phase>
-								<goals>
-									<!-- "build" should be used to create the images with the artifact -->
-									<goal>build</goal>
-								</goals>
-							</execution>
-							<!--
-							<execution>
-								<id>docker-push</id>
-								<phase>install</phase>
-								<goals>
-									<goal>push</goal>
-								</goals>
-							</execution>
-							-->
-						</executions>
-					</plugin>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.17.1</version>
+				<configuration>
+					<docker.machine.ignoreEmpty>true</docker.machine.ignoreEmpty>
+					<apiVersion>1.22</apiVersion>
+					<registry>${docker.registry}</registry>
+					<images>
+						<!-- A single's image configuration -->
+						<image>
+							<name>${docker.registry}/jzajic/kadvisor:latest</name>
+							<build>
+								<from>debian:latest</from>
+								<maintainer>jan.zajic@corpus.cz</maintainer>
+								<ports>
+									<port>1234</port>
+								</ports>
+								<assembly>
+									<mode>tar</mode>
+									<basedir>/</basedir>
+									<descriptor>${basedir}/package/assembly.xml</descriptor>
+								</assembly>
+								<entryPoint>
+									<shell>/bin/start.sh</shell>
+								</entryPoint>
+								<optimise>true</optimise>
+							</build>
+						</image>
+					</images>
+				</configuration>
+				<executions>
+					<execution>
+						<id>docker-build</id>
+						<phase>verify</phase>
+						<goals>
+							<!-- "build" should be used to create the images with the artifact -->
+							<goal>build</goal>
+						</goals>
+					</execution>
+					<!-- <execution> <id>docker-push</id> <phase>install</phase> <goals> 
+						<goal>push</goal> </goals> </execution> -->
+				</executions>
+			</plugin>
 		</plugins>
 		<pluginManagement>
 			<plugins>

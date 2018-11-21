@@ -48,7 +48,7 @@ public class ContainerAgentManager implements ContainerListener {
 	private void makeExecutable(String id, String path) {
 		ExecCreation execCreate = dockerClient.execCreate(id, new String[] {"chmod", "755", path});
 		dockerClient.execStart(execCreate.id);
-		System.out.println("Changed permission of "+path+" in cont "+id);
+		System.out.println("Changed permission of "+path+" in container "+id);
 	}
 
 	@Override
