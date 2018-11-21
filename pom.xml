@@ -39,9 +39,7 @@
 				<configuration>
 					<mainClass>net.jzajic.graalvm.kadvisor.KadvisorLauncher</mainClass>
 					<buildArgs>
-						--verbose -H:-ReportUnsupportedElementsAtRuntime
-						-H:ReflectionConfigurationResources=reflection.json,reflection-gen.json
-						-H:EnableURLProtocols=http
+						--verbose -H:-ReportUnsupportedElementsAtRuntime -H:ReflectionConfigurationResources=reflection.json,reflection-gen.json -H:EnableURLProtocols=http
 					</buildArgs>
 				</configuration>
 				<executions>
