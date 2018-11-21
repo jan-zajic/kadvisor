@@ -46,6 +46,10 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 	        .paramLabel("agent")
 	        .type(String.class)
 	        .description("Path to agent binary file (node-exporter).").build())
+			.addOption(OptionSpec.builder("--ipv6")
+	        .paramLabel("ipv6")
+	        .type(Boolean.class)
+	        .description("Enable ipv6.").build())
 			;
 	
 	private static final CommandLine commandLine = new CommandLine(spec);
@@ -93,6 +97,10 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 	
 	@Override
 	protected Integer handle(ParseResult parseResult) throws ExecutionException {
+		Boolean enableIpv6 = parseResult.matchedOptionValue("ipv6", false);
+		if(!enableIpv6) {
+			System.setProperty("java.net.preferIPv4Stack", "true");
+		}
 		this.port = parseResult.matchedOptionValue("port", 1234);
 		this.dockerURI = parseResult.matchedOptionValue("docker", "unix:///var/run/docker.sock");
 		this.label = parseResult.matchedOptionValue("label", "kadvisor");
