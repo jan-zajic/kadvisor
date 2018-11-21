@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadFactory;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
 
+@SuppressWarnings("restriction")
 public class HTTPServer {
 
 	protected final HttpServer server;

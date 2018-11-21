@@ -68,9 +68,7 @@ public class HTTPMetricHandler implements HttpHandler {
     response.close();
 
     t.getResponseHeaders().set("Content-Type",
-            TextFormat.CONTENT_TYPE_004);
-    t.getResponseHeaders().set("Content-Length",
-            String.valueOf(response.size()));
+    		PrometheusTextFormatParser.CONTENT_TYPE_004);
     if (shouldUseCompression(t)) {
         t.getResponseHeaders().set("Content-Encoding", "gzip");
         t.sendResponseHeaders(HttpURLConnection.HTTP_OK, 0);
