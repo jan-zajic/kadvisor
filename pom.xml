@@ -42,6 +42,13 @@
 						--verbose -H:-ReportUnsupportedElementsAtRuntime -H:ReflectionConfigurationResources=reflection.json,reflection-gen.json
 					</buildArgs>
 				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>native-image</goal>
+						</goals>					
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 						<groupId>io.fabric8</groupId>
