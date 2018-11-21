@@ -61,7 +61,7 @@ public class HTTPMetricHandler {
     });
     
     try {
-    	writer.write("#KADVISOR\n");
+    	writer.write("# KADVISOR\n");
 	    PrometheusTextFormatParser.write004(writer, outputSamples.values().iterator());
 	    writer.flush();
 	    response.close();
