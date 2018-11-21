@@ -148,6 +148,7 @@ public class WatchedContainerRegistry {
 		String ipAddress;
 		int port;
 		String path;
+		Map<String,String> tags;
 	}
 	
 }
