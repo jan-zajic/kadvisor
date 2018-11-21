@@ -38,7 +38,8 @@ public class ContainerAgentManager implements ContainerListener {
 			execInfo.execCreate = execCreate;
 			execInfo.info = info;
 			execMap.put(info.id, execInfo);
-			dockerClient.execStart(execCreate.id, ExecStartParameter.DETACH);					
+			dockerClient.execStart(execCreate.id, ExecStartParameter.DETACH);	
+			System.out.println("Started agent /bin/"+agentBinaryPath.getFileName().toString()+" in container "+info.id+" (execution ID "+execCreate.id+")");
 		} catch (DockerException | IOException e) {
 			e.printStackTrace();
 		}		
@@ -46,8 +47,8 @@ public class ContainerAgentManager implements ContainerListener {
 	
 	private void makeExecutable(String id, String path) {
 		ExecCreation execCreate = dockerClient.execCreate(id, new String[] {"chmod", "755", path});
-		String chmodResult = dockerClient.execStart(execCreate.id).readFully();
-		System.out.println("Changed permission of "+path+" in cont "+id+": \n"+chmodResult);
+		dockerClient.execStart(execCreate.id);
+		System.out.println("Changed permission of "+path+" in cont "+id);
 	}
 
 	@Override
