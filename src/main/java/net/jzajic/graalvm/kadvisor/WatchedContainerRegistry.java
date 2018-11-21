@@ -153,8 +153,8 @@ public class WatchedContainerRegistry {
 		ImmutableMap<String, String> labels = value.config.labels;
 		if(labels != null && !labels.isEmpty()) {
 			if(labels.containsKey("com.docker.compose.service")) {
-				tags.put("compose.service", labels.get("com.docker.compose.service"));
-				tags.put("compose.project", labels.get("com.docker.compose.project"));				
+				tags.put("compose_service", labels.get("com.docker.compose.service"));
+				tags.put("compose_project", labels.get("com.docker.compose.project"));				
 			}
 		}
 		return tags;
