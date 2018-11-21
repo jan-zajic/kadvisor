@@ -21,7 +21,6 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import io.prometheus.client.Collector.MetricFamilySamples;
-import io.prometheus.client.exporter.common.TextFormat;
 
 @SuppressWarnings("restriction")
 public class HTTPMetricHandler implements HttpHandler {

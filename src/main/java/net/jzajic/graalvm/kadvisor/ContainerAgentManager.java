@@ -3,15 +3,11 @@ package net.jzajic.graalvm.kadvisor;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import net.jzajic.graalvm.client.DockerClient;
 import net.jzajic.graalvm.client.DockerClient.ExecCreateParam;
 import net.jzajic.graalvm.client.DockerClient.ExecStartParameter;
-import net.jzajic.graalvm.client.LogStream;
 import net.jzajic.graalvm.client.exceptions.DockerException;
 import net.jzajic.graalvm.client.messages.ContainerInfo;
 import net.jzajic.graalvm.client.messages.ExecCreation;
@@ -23,13 +19,11 @@ public class ContainerAgentManager implements ContainerListener {
 	private final DockerClient dockerClient;
 	private final Path agentBinaryPath;
 	private final Map<String, ExecInfo> execMap = new ConcurrentHashMap<>();
-	protected final ExecutorService executorService;
 	
 	public ContainerAgentManager(DockerClient dockerClient, Path agentFolderPath) {
 		super();
 		this.dockerClient = dockerClient;
 		this.agentBinaryPath = agentFolderPath;
-		this.executorService = Executors.newCachedThreadPool();
 	}
 	
 	@Override
@@ -37,18 +31,14 @@ public class ContainerAgentManager implements ContainerListener {
 		try {
 			dockerClient.copyToContainer(agentBinaryPath, info.id, "/bin");
 			makeExecutable(info.id, "/bin/"+agentBinaryPath.getFileName().toString());
-			ExecCreation execCreate = dockerClient.execCreate(info.id, new String[] {"/bin/"+agentBinaryPath.getFileName().toString()}, ExecCreateParam.detach());
+			ExecCreation execCreate = dockerClient.execCreate(info.id, new String[] {
+						"/bin/"+agentBinaryPath.getFileName().toString()
+					});
 			ExecInfo execInfo = new ExecInfo();
 			execInfo.execCreate = execCreate;
 			execInfo.info = info;
 			execMap.put(info.id, execInfo);
-			LogStream logStream = dockerClient.execStart(execCreate.id, ExecStartParameter.DETACH);			
-			executorService.submit(new Callable<Void>() {
-		        public Void call() throws Exception {
-		        	logStream.attach(System.out, System.err);
-		          return null;
-		        }
-      });
+			dockerClient.execStart(execCreate.id, ExecStartParameter.DETACH);					
 		} catch (DockerException | IOException e) {
 			e.printStackTrace();
 		}		
