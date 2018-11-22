@@ -1,15 +1,19 @@
 package net.jzajic.graalvm.kadvisor;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.io.Resources;
 
 import net.jzajic.graalvm.client.DockerClient;
 import net.jzajic.graalvm.client.DockerClient.ExecCreateParam;
@@ -40,8 +44,8 @@ public class ContainerAgentManager implements ContainerListener {
 	public void added(String ipAddress, ContainerInfo info) {
 		try {
 			dockerClient.copyToContainer(agentBinaryPath, info.id, "/bin");
-			makeExecutable(info.id, "/bin/"+agentBinaryPath.getFileName().toString());
-			List<String> cmd = Lists.newArrayList("/bin/"+agentBinaryPath.getFileName().toString());
+			prepareEnv(info.id, agentBinaryPath.getFileName().toString());
+			List<String> cmd = Lists.newArrayList("/bin/kadvisor.sh");
 			int paramsCount = 0;
 			if(!Strings.isNullOrEmpty(exporterParams)) {
 				Matcher matcher = ARGS_PATTERN.matcher(exporterParams);
@@ -63,12 +67,25 @@ public class ContainerAgentManager implements ContainerListener {
 		}		
 	}
 	
-	private void makeExecutable(String id, String path) {
-		ExecCreation execCreate = dockerClient.execCreate(id, new String[] {"chmod", "755", path});
-		dockerClient.execStart(execCreate.id);
-		System.out.println("Changed permission of "+path+" in container "+id);
+	private void prepareEnv(String id, String binaryName) throws IOException {
+		String kadvisorCommand = Resources.toString(getClass().getResource("/kadvisor.sh"), StandardCharsets.UTF_8);
+		kadvisorCommand = kadvisorCommand.replace("${NODE_EXPORTER_PATH}", "/bin/"+binaryName);
+		kadvisorCommand = kadvisorCommand.replace("${NODE_EXPORTER_NAME}", binaryName);
+		List<String> commandLines = new ArrayList<>();
+		commandLines.add("PATH=\"/bin:/usr/bin\"");
+		commandLines.add("chmod 755 /bin/"+binaryName);
+		String[] kadvisorCommandLines = kadvisorCommand.split("\\r?\\n");
+		boolean firstLine = true;
+		for(String kadvisorCommandLine : kadvisorCommandLines) {
+			commandLines.add("echo $'"+kadvisorCommandLine.replace("'", "\\'")+"' "+(firstLine ? '>' : ">>")+" /bin/kadvisor.sh");
+			firstLine = false;
+		}
+		commandLines.add("chmod 755 /bin/kadvisor.sh");
+		ExecCreation execCreate = dockerClient.execCreate(id, new String[] {"/bin/sh", "-c", Joiner.on(';').join(commandLines)}, ExecCreateParam.attachStdin(), ExecCreateParam.attachStderr());
+		String readFully = dockerClient.execStart(execCreate.id).readFully();
+		System.out.println("Executed prepareEnv /bin/kadvisor.sh in container "+id+":\n"+readFully);
 	}
-
+	
 	@Override
 	public void removed(String ipAddress, ContainerInfo info) {
 		if(execMap.containsKey(info.id)) {
