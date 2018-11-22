@@ -75,8 +75,15 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 									.paramLabel("ipv6")
 									.type(Boolean.class)
 									.description("Enable ipv6.")
-									.build());
-
+									.build())
+			.addOption(
+					OptionSpec
+							.builder("--exporter-params")
+								.paramLabel("exporter-params")
+								.type(Boolean.class)
+								.description("Parameters passed to node exporters.")
+								.build());	
+	
 	private static final CommandLine commandLine = new CommandLine(spec);
 
 	private DockerClient dockerClient;
@@ -89,7 +96,8 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 	private String network;
 	private String dockerURI;
 	private String agent;
-
+	private String exporterParams;
+	
 	public static void main(String[] args) throws IOException {
 		KadvisorLauncher instance = new KadvisorLauncher();
 		Integer parseResult = commandLine.parseWithHandlers(
@@ -104,7 +112,7 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 	private void start() throws IOException {				
 		dockerClient = new DefaultDockerClient(dockerURI);
 		registry = new WatchedContainerRegistry(dockerClient, label, runtime, network);
-		manager = new ContainerAgentManager(dockerClient, Paths.get(this.agent));
+		manager = new ContainerAgentManager(dockerClient, Paths.get(this.agent), this.exporterParams);
 		registry.addListener(manager);
 		
 		RawHttp http = new RawHttp();
@@ -143,6 +151,7 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 		this.runtime = parseResult.matchedOptionValue("runtime", null);
 		this.network = parseResult.matchedOptionValue("network", null);
 		this.agent = parseResult.matchedOptionValue("agent", null);
+		this.exporterParams = parseResult.matchedOptionValue("exporter-params", "");
 		if (this.agent == null) {
 			throw new ExecutionException(commandLine, "Agent required");
 		}
