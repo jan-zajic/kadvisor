@@ -68,7 +68,7 @@ public class ContainerAgentManager implements ContainerListener {
 	}
 	
 	private void prepareEnv(String id, String binaryName) throws IOException {
-		String kadvisorCommand = Resources.toString(getClass().getResource("/kadvisor.sh"), StandardCharsets.UTF_8);
+		String kadvisorCommand = KadvisorSh.KADVISOR_SH;
 		kadvisorCommand = kadvisorCommand.replace("${NODE_EXPORTER_PATH}", "/bin/"+binaryName);
 		kadvisorCommand = kadvisorCommand.replace("${NODE_EXPORTER_NAME}", binaryName);
 		List<String> commandLines = new ArrayList<>();
