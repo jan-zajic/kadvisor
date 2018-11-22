@@ -45,7 +45,7 @@ public class HTTPMetricHandler {
     Writer writer = new OutputStreamWriter(response);
     response.reset();    
     //WRITE
-    final Map<String,MetricFamilySamples> outputSamples = new HashMap<>();
+    final Map<String,MetricFamilySamples> nodeExportersSamples = new HashMap<>();
     registry.endpoints().forEach(e -> {
     	try(Socket socket = new Socket(e.ipAddress, e.port); OutputStream socketOs = socket.getOutputStream();) {
     		String getURI = e.path;
@@ -59,13 +59,13 @@ public class HTTPMetricHandler {
     		socketOs.flush();
     		RawHttpResponse<?> rawResponse = http.parseResponse(socket.getInputStream()).eagerly();
     		Optional<? extends BodyReader> body = rawResponse.getBody();
-  			parser.collect(body.get().asRawStream(), outputSamples, e.tags);
+  			parser.collect(body.get().asRawStream(), nodeExportersSamples, e.tags);
     	} catch(IOException ex) {
     		ex.printStackTrace();
     	}
     });
     
-    computeMetrics(outputSamples);
+    Map<String,MetricFamilySamples> outputSamples = computeMetrics(nodeExportersSamples);
     
     try {
     	writer.write("# KADVISOR\n");
@@ -94,11 +94,12 @@ public class HTTPMetricHandler {
     }
 	}
 	
-	private void computeMetrics(Map<String, MetricFamilySamples> outputSamples) {
-		MetricFamilySamples totalMemBytes = outputSamples.get("node_memory_MemTotal_bytes");
-		MetricFamilySamples freeBytes = outputSamples.get("node_memory_MemFree_bytes");
-		MetricFamilySamples cachedBytes = outputSamples.get("node_memory_Cached_bytes");
-		MetricFamilySamples buffersBytes = outputSamples.get("node_memory_Buffers_bytes");
+	private Map<String, MetricFamilySamples> computeMetrics(Map<String, MetricFamilySamples> nodeExporterSamples) {
+		Map<String, MetricFamilySamples> outputSamples = new HashMap<>();
+		MetricFamilySamples totalMemBytes = nodeExporterSamples.get("node_memory_MemTotal_bytes");
+		MetricFamilySamples freeBytes = nodeExporterSamples.get("node_memory_MemFree_bytes");
+		MetricFamilySamples cachedBytes = nodeExporterSamples.get("node_memory_Cached_bytes");
+		MetricFamilySamples buffersBytes = nodeExporterSamples.get("node_memory_Buffers_bytes");
 		
 		if(totalMemBytes != null && freeBytes != null && cachedBytes != null && buffersBytes != null) {
 			GroupedMetric totalMemPerLabels = groupMetrics(totalMemBytes);
@@ -109,10 +110,31 @@ public class HTTPMetricHandler {
 			GroupedMetric memRssBytes =  memUsageBytes.minus(buffersPerLabels, "xxx").minus(cachedPerLabels, "container_memory_rss");
 			addMetric(outputSamples, memUsageBytes, totalMemBytes.type, "Current memory usage in bytes, including all memory regardless of when it was accessed");
 			addMetric(outputSamples, memRssBytes, totalMemBytes.type, "Size of RSS in bytes.");
+			addMetric(outputSamples, cachedPerLabels.rename("container_memory_cache"), cachedBytes.type, "Total page cache memory.");
 		}
+		
+		addRenamed(outputSamples, nodeExporterSamples, "node_cpu_seconds_total", "container_cpu_usage_seconds_total");
+		addRenamed(outputSamples, nodeExporterSamples, "node_memory_Mapped_bytes", "container_memory_mapped_file");
+		
+		//node_filesystem_size node_filesystem_avail
+		
+		return outputSamples;
 	}
 	
+	private void addRenamed(Map<String, MetricFamilySamples> outputSamples, Map<String, MetricFamilySamples> nodeExporterSamples, String originalName, String newName) {
+		addRenamed(outputSamples, nodeExporterSamples, originalName, newName, null);
+	}
+	
+	private void addRenamed(Map<String, MetricFamilySamples> outputSamples, Map<String, MetricFamilySamples> nodeExporterSamples, String originalName, String newName, String newHelp) {
+		MetricFamilySamples originalMetric = nodeExporterSamples.get(originalName);
+		if(originalMetric != null) {
+			GroupedMetric renamedGroupedNewMetric = groupMetrics(originalMetric).rename(newName);
+			addMetric(outputSamples, renamedGroupedNewMetric, originalMetric.type, newHelp != null ? newHelp : originalMetric.help);
+		}
+	}
+
 	private void addMetric(Map<String, MetricFamilySamples> outputSamples, GroupedMetric memUsageBytes, Type type, String help) {
+		final String newName = memUsageBytes.name;
 		List<Sample> samples = new ArrayList<>(memUsageBytes.groupedValues.size());
 		memUsageBytes.groupedValues.forEach((key, val) -> {
 			List<String> labelNames = new ArrayList<>(key.labels.size());
@@ -121,10 +143,10 @@ public class HTTPMetricHandler {
 				labelNames.add(labelKey);
 				labelValues.add(labelVal);
 			});
-			Sample sample = new Sample(key.name, labelNames, labelValues, val);
+			Sample sample = new Sample(newName, labelNames, labelValues, val);
 			samples.add(sample);
 		});
-		outputSamples.put(memUsageBytes.name, new MetricFamilySamples(memUsageBytes.name, type, help, samples));
+		outputSamples.put(newName, new MetricFamilySamples(newName, type, help, samples));
 	}
 
 	private GroupedMetric groupMetrics(MetricFamilySamples samples) {
@@ -150,6 +172,10 @@ public class HTTPMetricHandler {
 			this.groupedValues = groupedValues;
 		}
 		
+		public GroupedMetric rename(String name) {
+			return new GroupedMetric(name, groupedValues);
+		}
+
 		public GroupedMetric minus(GroupedMetric other, String newName) {
 			Map<SampleKey, Double> grouped = new HashMap<>();
 			groupedValues.forEach((key,val) -> {
