@@ -42,11 +42,13 @@ public class ContainerAgentManager implements ContainerListener {
 			dockerClient.copyToContainer(agentBinaryPath, info.id, "/bin");
 			makeExecutable(info.id, "/bin/"+agentBinaryPath.getFileName().toString());
 			List<String> cmd = Lists.newArrayList("/bin/"+agentBinaryPath.getFileName().toString());
+			int paramsCount = 0;
 			if(!Strings.isNullOrEmpty(exporterParams)) {
 				Matcher matcher = ARGS_PATTERN.matcher(exporterParams);
 				while (matcher.find()) {
 					String group = matcher.group(1);
 					cmd.add(group);
+					paramsCount++;
 				}
 			}
 			ExecCreation execCreate = dockerClient.execCreate(info.id, cmd.toArray(new String[] {}));
@@ -55,7 +57,7 @@ public class ContainerAgentManager implements ContainerListener {
 			execInfo.info = info;
 			execMap.put(info.id, execInfo);
 			dockerClient.execStart(execCreate.id, ExecStartParameter.DETACH);	
-			System.out.println("Started agent /bin/"+agentBinaryPath.getFileName().toString()+" in container "+info.id+" (execution ID "+execCreate.id+")");
+			System.out.println("Started agent /bin/"+agentBinaryPath.getFileName().toString()+" in container "+info.id+" (execution ID "+execCreate.id+") with "+paramsCount+" params");
 		} catch (DockerException | IOException e) {
 			e.printStackTrace();
 		}		
