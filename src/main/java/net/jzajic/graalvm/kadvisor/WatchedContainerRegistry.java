@@ -157,7 +157,7 @@ public class WatchedContainerRegistry {
 				tags.put("compose_project", labels.get("com.docker.compose.project"));				
 			}
 		}
-		tags.put("name", value.config.domainname);		
+		tags.put("name", value.name.startsWith("/") ? value.name.substring(1) : value.name);		
 		return tags;
 	}
 
