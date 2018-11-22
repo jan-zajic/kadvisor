@@ -1,7 +1,6 @@
 package net.jzajic.graalvm.kadvisor;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +12,6 @@ import java.util.regex.Pattern;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.google.common.io.Resources;
 
 import net.jzajic.graalvm.client.DockerClient;
 import net.jzajic.graalvm.client.DockerClient.ExecCreateParam;
@@ -77,7 +75,7 @@ public class ContainerAgentManager implements ContainerListener {
 		String[] kadvisorCommandLines = kadvisorCommand.split("\\r?\\n");
 		boolean firstLine = true;
 		for(String kadvisorCommandLine : kadvisorCommandLines) {
-			commandLines.add("echo $'"+kadvisorCommandLine.replace("'", "\\'")+"' "+(firstLine ? '>' : ">>")+" /bin/kadvisor.sh");
+			commandLines.add("echo "+kadvisorCommandLine+" "+(firstLine ? '>' : ">>")+" /bin/kadvisor.sh");
 			firstLine = false;
 		}
 		commandLines.add("chmod 755 /bin/kadvisor.sh");
