@@ -75,14 +75,7 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 									.paramLabel("ipv6")
 									.type(Boolean.class)
 									.description("Enable ipv6.")
-									.build())
-			.addOption(
-					OptionSpec
-							.builder("--exporter-params")
-								.paramLabel("exporter-params")
-								.type(Boolean.class)
-								.description("Parameters passed to node exporters.")
-								.build());	
+									.build());
 	
 	private static final CommandLine commandLine = new CommandLine(spec);
 
@@ -151,7 +144,7 @@ public class KadvisorLauncher extends AbstractParseResultHandler<Integer> {
 		this.runtime = parseResult.matchedOptionValue("runtime", null);
 		this.network = parseResult.matchedOptionValue("network", null);
 		this.agent = parseResult.matchedOptionValue("agent", null);
-		this.exporterParams = parseResult.matchedOptionValue("exporter-params", "");
+		this.exporterParams = System.getenv("NODE_EXPORTER_PARAMS");
 		if (this.agent == null) {
 			throw new ExecutionException(commandLine, "Agent required");
 		}
